@@ -19,6 +19,8 @@ pub fn action() -> Value {
         // run_action_step_uuid();
 
         dbg!(context.get("123"));
+        context.set("123", "yes2");
+
         context.pop();
     }
 
@@ -30,8 +32,15 @@ mod tests {
     use super::*;
 
     #[test]
-    fn it_works() {
+    fn it_works() -> Result<(), String> {
+        let expected = "yes2".to_string();
+
+        // emulate a generated function by wit-bindgen
+        let nice_function = |p: String| expected == p;
+
         let result = action();
-        assert_eq!(result, "lol");
+        assert!(nice_function(result.try_into()?));
+
+        Ok(())
     }
 }

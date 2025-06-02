@@ -1,7 +1,5 @@
-use std::{
-    cell::RefCell,
-    collections::{HashMap, VecDeque},
-};
+use std::cell::RefCell;
+use std::collections::{HashMap, VecDeque};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Value {
@@ -10,8 +8,31 @@ pub enum Value {
     Nil,
 }
 
-pub struct Context {
-    scopes: VecDeque<HashMap<String, RefCell<Value>>>,
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub enum ValueType {
+    String,
+    Int,
+    Nil
+}
+
+impl std::fmt::Display for ValueType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ValueType::String => f.write_str("string"),
+            ValueType::Int => f.write_str("integer"),
+            ValueType::Nil => f.write_str("nil"),
+        }
+    }
+}
+
+impl Value {
+    pub fn as_type(&self) -> ValueType {
+        match self {
+            Value::String(_) => ValueType::String,
+            Value::Int(_) => ValueType::Int,
+            Value::Nil => ValueType::Nil,
+        }
+    }
 }
 
 impl Into<Value> for &str {
@@ -56,11 +77,52 @@ impl PartialEq<String> for Value {
     }
 }
 
+impl TryInto<String> for Value {
+    type Error = String;
+
+    fn try_into(self) -> Result<String, Self::Error> {
+        match self {
+            Value::String(x) => Ok(x),
+            _ => Err(format!("Invalid type expected string found {}", self.as_type())),
+        }
+    }
+}
+
+impl TryInto<i64> for Value {
+    type Error = String;
+
+    fn try_into(self) -> Result<i64, Self::Error> {
+        match self {
+            Value::Int(x) => Ok(x),
+            _ => Err(format!("Invalid type expected integer found {}", self.as_type())),
+        }
+    }
+}
+
+impl TryInto<()> for Value {
+    type Error = String;
+
+    fn try_into(self) -> Result<(), Self::Error> {
+        match self {
+            Value::Nil => Ok(()),
+            _ => Err(format!("Invalid type expected nil found {}", self.as_type())),
+        }
+    }
+}
+
+pub struct Context {
+    scopes: VecDeque<HashMap<String, RefCell<Value>>>,
+}
+
 impl Context {
     pub fn new() -> Context {
-        Context {
+        let mut ctx = Context {
             scopes: VecDeque::new(),
-        }
+        };
+
+        ctx.push();
+
+        ctx
     }
 
     pub fn set<T: AsRef<str>, U: Into<Value>>(&mut self, key: T, value: U) {
@@ -71,7 +133,7 @@ impl Context {
 
         match scope {
             Some(s) => {
-                let a = s.get(key.as_ref()).expect("already checky");
+                let a = s.get(key.as_ref()).expect("already checked if in this scope");
                 let mut b = a.borrow_mut();
                 *b = value.into();
             }
