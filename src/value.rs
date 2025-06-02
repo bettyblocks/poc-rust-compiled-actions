@@ -1,5 +1,15 @@
 use ordered_float::OrderedFloat;
 
+mod sealed {
+    pub trait Sealed {}
+    impl Sealed for u32 {}
+    impl Sealed for i32 {}
+    impl Sealed for i64 {}
+    impl Sealed for f64 {}
+    impl Sealed for () {}
+    // Add whatever subtypes you need
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Value {
     String(String),
@@ -109,45 +119,43 @@ impl PartialEq<String> for Value {
     }
 }
 
-impl PartialEq<f64> for Value {
-    fn eq(&self, other: &f64) -> bool {
-        match self {
-            Value::Number(s) => s == &OrderedFloat(*other),
-            _ => false,
-        }
+impl<T> PartialEq<T> for Value
+where
+    T: Copy + sealed::Sealed,
+    Value: From<T>,
+{
+    fn eq(&self, other: &T) -> bool {
+        self == &Value::from(*other)
     }
 }
 
-impl PartialEq<i64> for Value {
-    fn eq(&self, other: &i64) -> bool {
-        match self {
-            Value::Int(s) => s == other,
-            _ => false,
-        }
-    }
-}
-
-impl PartialEq<i32> for Value {
-    fn eq(&self, other: &i32) -> bool {
-        match self {
-            Value::Int(s) => *s == (*other as i64),
-            _ => false,
-        }
-    }
-}
-
-impl PartialEq<u32> for Value {
-    fn eq(&self, other: &u32) -> bool {
-        match self {
-            Value::Int(s) => *s == (*other as i64),
-            _ => false,
-        }
-    }
-}
-
-impl PartialOrd<i64> for Value {
-    fn partial_cmp(&self, other: &i64) -> Option<std::cmp::Ordering> {
+impl<T> PartialOrd<T> for Value
+where
+    T: Copy + sealed::Sealed,
+    Value: From<T>,
+{
+    fn partial_cmp(&self, other: &T) -> Option<std::cmp::Ordering> {
         self.partial_cmp(&Value::from(*other))
+    }
+}
+
+impl PartialOrd<String> for Value {
+    fn partial_cmp(&self, other: &String) -> Option<std::cmp::Ordering> {
+        match self {
+            Value::String(s) => s.partial_cmp(other),
+            // figure out what to do
+            _ => None,
+        }
+    }
+}
+
+impl PartialOrd<&str> for Value {
+    fn partial_cmp(&self, other: &&str) -> Option<std::cmp::Ordering> {
+        match self {
+            Value::String(s) => s.as_str().partial_cmp(other),
+            // figure out what to do
+            _ => None,
+        }
     }
 }
 
