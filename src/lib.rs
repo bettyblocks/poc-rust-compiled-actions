@@ -1,8 +1,8 @@
-mod context;
+pub mod context;
+pub mod value;
 
-use context::Value;
-
-use crate::context::Context;
+pub use context::Context;
+pub use value::{Value, ValueType};
 
 pub fn action() -> Value {
     let mut context = Context::new();
