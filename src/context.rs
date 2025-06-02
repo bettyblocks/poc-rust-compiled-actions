@@ -1,4 +1,3 @@
-use std::cell::RefCell;
 use std::collections::{HashMap, VecDeque};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -8,11 +7,21 @@ pub enum Value {
     Nil,
 }
 
+impl std::fmt::Display for Value {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Value::String(x) => write!(f, r#""{x}""#),
+            Value::Int(x) => write!(f, "{x}"),
+            Value::Nil => f.write_str("null"),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ValueType {
     String,
     Int,
-    Nil
+    Nil,
 }
 
 impl std::fmt::Display for ValueType {
@@ -20,7 +29,7 @@ impl std::fmt::Display for ValueType {
         match self {
             ValueType::String => f.write_str("string"),
             ValueType::Int => f.write_str("integer"),
-            ValueType::Nil => f.write_str("nil"),
+            ValueType::Nil => f.write_str("null"),
         }
     }
 }
@@ -50,6 +59,18 @@ impl Into<Value> for String {
 impl Into<Value> for i64 {
     fn into(self) -> Value {
         Value::Int(self)
+    }
+}
+
+impl Into<Value> for i32 {
+    fn into(self) -> Value {
+        Value::Int(self as i64)
+    }
+}
+
+impl Into<Value> for u32 {
+    fn into(self) -> Value {
+        Value::Int(self as i64)
     }
 }
 
@@ -83,7 +104,10 @@ impl TryInto<String> for Value {
     fn try_into(self) -> Result<String, Self::Error> {
         match self {
             Value::String(x) => Ok(x),
-            _ => Err(format!("Invalid type expected string found {}", self.as_type())),
+            _ => Err(format!(
+                "Invalid type expected string found {}",
+                self.as_type()
+            )),
         }
     }
 }
@@ -94,7 +118,10 @@ impl TryInto<i64> for Value {
     fn try_into(self) -> Result<i64, Self::Error> {
         match self {
             Value::Int(x) => Ok(x),
-            _ => Err(format!("Invalid type expected integer found {}", self.as_type())),
+            _ => Err(format!(
+                "Invalid type expected integer found {}",
+                self.as_type()
+            )),
         }
     }
 }
@@ -105,7 +132,10 @@ impl TryInto<()> for Value {
     fn try_into(self) -> Result<(), Self::Error> {
         match self {
             Value::Nil => Ok(()),
-            _ => Err(format!("Invalid type expected nil found {}", self.as_type())),
+            _ => Err(format!(
+                "Invalid type expected nil found {}",
+                self.as_type()
+            )),
         }
     }
 }
@@ -133,7 +163,9 @@ impl Context {
 
         match scope {
             Some(s) => {
-                let a = s.get_mut(key.as_ref()).expect("already checked if in this scope");
+                let a = s
+                    .get_mut(key.as_ref())
+                    .expect("already checked if in this scope");
                 *a = value.into();
             }
             None => {
@@ -146,7 +178,10 @@ impl Context {
         let scope = self.scopes.iter().find(|scope| scope.contains_key(key));
 
         match scope {
-            Some(s) => s.get(key).expect("already checked if in this scope").clone(),
+            Some(s) => s
+                .get(key)
+                .expect("already checked if in this scope")
+                .clone(),
             None => Value::Nil,
         }
     }
@@ -157,5 +192,24 @@ impl Context {
 
     pub fn pop(&mut self) {
         self.scopes.pop_front();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn value_display_test() {
+        assert_eq!(Value::Nil.to_string(), "null");
+        assert_eq!(Value::Int(123).to_string(), "123");
+        assert_eq!( Value::String("oke".to_string()).to_string(),  "\"oke\"" );
+    }
+
+    #[test]
+    fn value_type_display_test() {
+        assert_eq!(ValueType::Nil.to_string(), "null");
+        assert_eq!(ValueType::Int.to_string(), "integer");
+        assert_eq!(ValueType::String.to_string(), "string");
     }
 }

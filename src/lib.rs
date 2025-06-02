@@ -21,6 +21,7 @@ pub fn action() -> Value {
         let oke = context.get("123");
         context.set("123", "yes2");
         context.set("124", oke);
+        context.set("124", 123);
 
         context.pop();
     }
