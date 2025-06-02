@@ -111,7 +111,7 @@ impl TryInto<()> for Value {
 }
 
 pub struct Context {
-    scopes: VecDeque<HashMap<String, RefCell<Value>>>,
+    scopes: VecDeque<HashMap<String, Value>>,
 }
 
 impl Context {
@@ -133,12 +133,11 @@ impl Context {
 
         match scope {
             Some(s) => {
-                let a = s.get(key.as_ref()).expect("already checked if in this scope");
-                let mut b = a.borrow_mut();
-                *b = value.into();
+                let a = s.get_mut(key.as_ref()).expect("already checked if in this scope");
+                *a = value.into();
             }
             None => {
-                self.scopes[0].insert(key.as_ref().to_string(), RefCell::new(value.into()));
+                self.scopes[0].insert(key.as_ref().to_string(), value.into());
             }
         };
     }
@@ -147,7 +146,7 @@ impl Context {
         let scope = self.scopes.iter().find(|scope| scope.contains_key(key));
 
         match scope {
-            Some(s) => s.get(key).unwrap().clone().borrow().clone(),
+            Some(s) => s.get(key).expect("already checked if in this scope").clone(),
             None => Value::Nil,
         }
     }

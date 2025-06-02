@@ -18,13 +18,18 @@ pub fn action() -> Value {
         // Or a concrete function like
         // run_action_step_uuid();
 
-        dbg!(context.get("123"));
+        let oke = context.get("123");
         context.set("123", "yes2");
+        context.set("124", oke);
 
         context.pop();
     }
 
-    context.get("123")
+    if context.get("124") == "yes1" {
+        context.get("123")
+    } else {
+        context.get("123")
+    }
 }
 
 #[cfg(test)]
