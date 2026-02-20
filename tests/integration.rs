@@ -64,12 +64,15 @@ pub async fn conditional(_configurations: (), input: Input, _user_id: ()) -> Val
             ctx.scope(HashMap::from([]), HashMap::from([]), async || {
                 {
                     let value = ctx.get(24110);
-                    ctx.set(24110, multiple_action_steps(
-                        _configurations,
-                        HashMap::from([(String::from("hallo"), value)]),
-                        _user_id,
+                    ctx.set(
+                        24110,
+                        multiple_action_steps(
+                            _configurations,
+                            HashMap::from([(String::from("hallo"), value)]),
+                            _user_id,
+                        )
+                        .await,
                     )
-                    .await)
                 }
 
                 let result = ctx.get(24110);
@@ -113,14 +116,10 @@ pub async fn loop_steps(_configurations: (), _input: Input, _user_id: ()) -> Val
                         let input = (
                             ctx.get(24110).try_into().unwrap(),
                             ctx.get(2).try_into().unwrap(),
-                            ctx.get(1).try_into().unwrap()
+                            ctx.get(1).try_into().unwrap(),
                         );
 
-                        ctx.set(
-                            24110,
-                            looped_hallo(input)
-                            .await,
-                        );
+                        ctx.set(24110, looped_hallo(input).await);
                     },
                 )
                 .await;

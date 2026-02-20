@@ -2,7 +2,10 @@ use std::collections::HashMap;
 
 use rquickjs::{AsyncContext, AsyncRuntime, async_with};
 
-use rust_actions::{Context, ContextMethods, Value, context::{Input, js_context::JsContext}};
+use rust_actions::{
+    Context, ContextMethods, Value,
+    context::{Input, js_context::JsContext},
+};
 
 thread_local! {
 pub static JAVASCRIPT_RUNTIME: std::rc::Rc<AsyncRuntime> = std::rc::Rc::new(AsyncRuntime::new().expect("Not enough memory for a javascript runtime"));
@@ -41,10 +44,9 @@ async fn javascript_step(ctx: std::rc::Rc<std::cell::RefCell<Context>>, code: St
 
     async_with!(javascript_context => |javascript_context| {
         let globals = javascript_context.globals();
-        
+
         let jsctx = JsContext::new(ctx);
         globals.set("$ctx", jsctx.clone()).expect("Could not set javascript context");
-
 
         let jsctx_clone = jsctx.clone();
         let getter = move || jsctx_clone.result();

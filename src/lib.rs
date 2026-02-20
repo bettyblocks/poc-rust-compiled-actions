@@ -1,4 +1,7 @@
 pub mod context;
 pub mod value;
 
-pub use crate::{value::Value, context::{Context, ContextMethods}};
+pub use crate::{
+    context::{Context, ContextMethods},
+    value::Value,
+};

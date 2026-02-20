@@ -2,7 +2,11 @@
 pub mod js_context;
 
 use crate::Value;
-use std::{cell::RefCell, collections::{HashMap, VecDeque}, rc::Rc};
+use std::{
+    cell::RefCell,
+    collections::{HashMap, VecDeque},
+    rc::Rc,
+};
 
 pub type Input = HashMap<String, Value>;
 pub type UintMapping = HashMap<&'static str, u32>;
@@ -51,12 +55,7 @@ impl Context {
 
 #[allow(async_fn_in_trait)]
 pub trait ContextMethods {
-    async fn scope(
-        &self,
-        input: Input,
-        uint_mapping: UintMapping,
-        closure: impl AsyncFn(),
-    );
+    async fn scope(&self, input: Input, uint_mapping: UintMapping, closure: impl AsyncFn());
 
     fn set<U: Into<Value>>(&self, key: u32, value: U);
 
@@ -68,12 +67,7 @@ pub trait ContextMethods {
 }
 
 impl ContextMethods for Rc<RefCell<Context>> {
-    async fn scope(
-        &self,
-        input: Input,
-        uint_mapping: UintMapping,
-        closure: impl AsyncFn(),
-    ) {
+    async fn scope(&self, input: Input, uint_mapping: UintMapping, closure: impl AsyncFn()) {
         self.borrow_mut().push(map_uint_vars(input, uint_mapping));
         closure().await;
         self.borrow_mut().pop();
@@ -98,8 +92,11 @@ impl ContextMethods for Rc<RefCell<Context>> {
     }
 
     fn get(&self, key: u32) -> Value {
-        let self_borrow  = self.borrow();
-        let scope = self_borrow.scopes.iter().find(|scope| scope.contains_key(&key));
+        let self_borrow = self.borrow();
+        let scope = self_borrow
+            .scopes
+            .iter()
+            .find(|scope| scope.contains_key(&key));
 
         match scope {
             Some(s) => s

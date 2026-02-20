@@ -248,7 +248,7 @@ impl<'js> rquickjs::FromJs<'js> for Value {
             rquickjs::Type::Undefined => Ok(Value::Nil),
             rquickjs::Type::String => Ok(Value::String(String::from_js(ctx, value)?)),
             rquickjs::Type::Int => Ok(Value::Int(i64::from_js(ctx, value)?)),
-            unsupported => panic!("tried to convert {unsupported} to a Value")
+            unsupported => panic!("tried to convert {unsupported} to a Value"),
         }
     }
 }
