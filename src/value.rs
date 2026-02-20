@@ -1,5 +1,3 @@
-use ordered_float::OrderedFloat;
-
 mod sealed {
     pub trait Sealed {}
     impl Sealed for u32 {}
@@ -10,11 +8,14 @@ mod sealed {
     // Add whatever subtypes you need
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Default)]
+#[cfg_attr(feature = "javascript", derive(rquickjs::class::Trace))]
 pub enum Value {
     String(String),
-    Number(OrderedFloat<f64>),
+    Number(f64),
     Int(i64),
+    Vec(Vec<Value>),
+    #[default]
     Nil,
 }
 
@@ -24,6 +25,7 @@ impl std::fmt::Display for Value {
             Value::String(x) => write!(f, r#""{x}""#),
             Value::Number(x) => write!(f, "{x}"),
             Value::Int(x) => write!(f, "{x}"),
+            Value::Vec(x) => write!(f, "{x:?}"),
             Value::Nil => f.write_str("null"),
         }
     }
@@ -34,6 +36,7 @@ pub enum ValueType {
     String,
     Number,
     Int,
+    Vec,
     Nil,
 }
 
@@ -43,6 +46,7 @@ impl std::fmt::Display for ValueType {
             ValueType::String => f.write_str("string"),
             ValueType::Number => f.write_str("number"),
             ValueType::Int => f.write_str("integer"),
+            ValueType::Vec => f.write_str("vector"),
             ValueType::Nil => f.write_str("null"),
         }
     }
@@ -54,6 +58,7 @@ impl Value {
             Value::String(_) => ValueType::String,
             Value::Number(_) => ValueType::Number,
             Value::Int(_) => ValueType::Int,
+            Value::Vec(_) => ValueType::Vec,
             Value::Nil => ValueType::Nil,
         }
     }
@@ -73,7 +78,7 @@ impl From<String> for Value {
 
 impl From<f64> for Value {
     fn from(value: f64) -> Self {
-        Value::Number(value.into())
+        Value::Number(value)
     }
 }
 
@@ -95,9 +100,9 @@ impl From<u32> for Value {
     }
 }
 
-impl Default for Value {
-    fn default() -> Self {
-        Value::Nil
+impl From<Vec<Value>> for Value {
+    fn from(value: Vec<Value>) -> Self {
+        Value::Vec(value)
     }
 }
 
@@ -126,16 +131,6 @@ where
 {
     fn eq(&self, other: &T) -> bool {
         self == &Value::from(*other)
-    }
-}
-
-impl<T> PartialOrd<T> for Value
-where
-    T: Copy + sealed::Sealed,
-    Value: From<T>,
-{
-    fn partial_cmp(&self, other: &T) -> Option<std::cmp::Ordering> {
-        self.partial_cmp(&Value::from(*other))
     }
 }
 
@@ -178,7 +173,7 @@ impl TryFrom<Value> for f64 {
 
     fn try_from(value: Value) -> Result<Self, Self::Error> {
         match value {
-            Value::Number(x) => Ok(*x),
+            Value::Number(x) => Ok(x),
             _ => Err(format!(
                 "Invalid type expected number found {}",
                 value.as_type()
@@ -201,6 +196,20 @@ impl TryFrom<Value> for i64 {
     }
 }
 
+impl TryFrom<Value> for Vec<Value> {
+    type Error = String;
+
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
+        match value {
+            Value::Vec(x) => Ok(x),
+            _ => Err(format!(
+                "Invalid type expected vec found {}",
+                value.as_type()
+            )),
+        }
+    }
+}
+
 impl TryFrom<Value> for () {
     type Error = String;
 
@@ -211,6 +220,35 @@ impl TryFrom<Value> for () {
                 "Invalid type expected nil found {}",
                 value.as_type()
             )),
+        }
+    }
+}
+
+#[cfg(feature = "javascript")]
+impl<'js> rquickjs::IntoJs<'js> for Value {
+    fn into_js(self, ctx: &rquickjs::Ctx<'js>) -> rquickjs::Result<rquickjs::Value<'js>> {
+        match self {
+            Value::String(x) => x.into_js(ctx),
+            Value::Number(x) => x.into_js(ctx),
+            Value::Int(x) => x.into_js(ctx),
+            Value::Vec(x) => x.into_js(ctx),
+            Value::Nil => ().into_js(ctx),
+        }
+    }
+}
+
+#[cfg(feature = "javascript")]
+impl<'js> rquickjs::FromJs<'js> for Value {
+    fn from_js(ctx: &rquickjs::Ctx<'js>, value: rquickjs::Value<'js>) -> rquickjs::Result<Self> {
+        match value.type_of() {
+            rquickjs::Type::Array => Ok(Value::Vec(<Vec<Value>>::from_js(ctx, value)?)),
+            rquickjs::Type::BigInt => Ok(Value::Int(i64::from_js(ctx, value)?)),
+            rquickjs::Type::Float => Ok(Value::Number(f64::from_js(ctx, value)?)),
+            rquickjs::Type::Null => Ok(Value::Nil),
+            rquickjs::Type::Undefined => Ok(Value::Nil),
+            rquickjs::Type::String => Ok(Value::String(String::from_js(ctx, value)?)),
+            rquickjs::Type::Int => Ok(Value::Int(i64::from_js(ctx, value)?)),
+            unsupported => panic!("tried to convert {unsupported} to a Value")
         }
     }
 }
@@ -231,10 +269,5 @@ mod tests {
         assert_eq!(ValueType::Nil.to_string(), "null");
         assert_eq!(ValueType::Int.to_string(), "integer");
         assert_eq!(ValueType::String.to_string(), "string");
-    }
-
-    #[test]
-    fn ordering_with_integer() {
-        assert!(Value::Int(65) > 34);
     }
 }
