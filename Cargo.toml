@@ -4,3 +4,10 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+rquickjs = { version = "0.11.0", features = ["macro", "futures"], optional = true }
+
+[dev-dependencies]
+tokio = { version = "1.49.0", features = ["rt", "macros"] }
+
+[features]
+javascript = ["dep:rquickjs"]
